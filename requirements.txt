@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+langgraph
+langchain-anthropic
+anthropic
+yfinance
+python-dotenv
+pytest
+httpx
