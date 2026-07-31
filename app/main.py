@@ -1,8 +1,14 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from app.agent.graph import build_agent
 from app.agent.state import TickerMetrics
+
+# Load GOOGLE_API_KEY (and any other vars) from .env into the process environment.
+# Must happen before build_agent()/summarize() run, since ChatGoogleGenerativeAI
+# reads GOOGLE_API_KEY straight from os.environ.
+load_dotenv()
 
 app = FastAPI(title="Agentic Finance Assistant API")
 

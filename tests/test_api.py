@@ -20,8 +20,24 @@ class FakeTicker:
         return pd.DataFrame({"Close": FAKE_PRICES[self.symbol]})
 
 
+class FakeMessage:
+    def __init__(self, content):
+        self.content = content
+
+
+class FakeLLM:
+    """Stands in for ChatGoogleGenerativeAI so tests don't call the real Gemini API."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def invoke(self, prompt):
+        return FakeMessage(content="fake summary text")
+
+
 def test_analyze_portfolio_endpoint(monkeypatch):
     monkeypatch.setattr(nodes.yf, "Ticker", FakeTicker)
+    monkeypatch.setattr(nodes, "ChatGoogleGenerativeAI", FakeLLM)
     client = TestClient(app)
 
     response = client.post(
@@ -32,7 +48,7 @@ def test_analyze_portfolio_endpoint(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert set(body["metrics"].keys()) == {"AAPL", "VWCE.DE"}
-    assert "How risky is this portfolio?" in body["summary"]
+    assert body["summary"] == "fake summary text"
 
 
 def test_analyze_portfolio_rejects_empty_tickers():

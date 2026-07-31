@@ -2,6 +2,7 @@ import math
 import statistics
 
 import yfinance as yf
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.agent.state import AgentState, TickerMetrics
 
@@ -53,33 +54,30 @@ def calculate_metrics(state: AgentState) -> dict:
 
 
 def summarize(state: AgentState) -> dict:
-    """Turn computed metrics into a plain-language answer to the user's question.
-
-    STUB: builds the summary from a template instead of calling an LLM, so the graph can be
-    tested end-to-end without a GOOGLE_API_KEY. Once a key is available, swap the body for
-    a real langchain_google_genai call (see TODO below) — the signature/return shape stays the
-    same, so nothing else in the graph needs to change.
-    """
-    lines = [
+    """Turn computed metrics into a plain-language answer to the user's question via Gemini."""
+    metrics_text = "\n".join(
         f"- {ticker}: {m.total_return_pct:+.1f}% total return, "
         f"{m.annualized_volatility_pct:.1f}% annualized volatility (5yr)"
         for ticker, m in state["metrics"].items()
-    ]
-    summary = (
-        f'Regarding your question, "{state["question"]}" — here is what the data shows:\n'
-        + "\n".join(lines)
     )
 
-    # TODO(real LLM call): once GOOGLE_API_KEY is set in .env, replace the templated
-    # `summary` above with something like:
-    #
-    #   from langchain_google_genai import ChatGoogleGenerativeAI
-    #   llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
-    #   prompt = (
-    #       f"A retail investor asked: {state['question']}\n"
-    #       f"Portfolio metrics: {state['metrics']}\n"
-    #       "Explain this in plain, non-technical language, directly answering their question."
-    #   )
-    #   summary = llm.invoke(prompt).content
+    prompt = (
+        f'A retail investor asked: "{state["question"]}"\n\n'
+        f"Portfolio metrics:\n{metrics_text}\n\n"
+        "Explain this in plain, non-technical language, directly answering their question. "
+        "Keep it to a short paragraph."
+    )
+
+    # ChatGoogleGenerativeAI reads the GOOGLE_API_KEY environment variable automatically —
+    # no need to pass it explicitly, as long as it's set (via .env + load_dotenv()).
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest")
+    content = llm.invoke(prompt).content
+
+    # This model returns a list of content blocks (text + reasoning metadata) rather than
+    # a plain string, so pull out just the "text" blocks and join them.
+    if isinstance(content, list):
+        summary = "".join(block["text"] for block in content if block.get("type") == "text")
+    else:
+        summary = content
 
     return {"summary": summary}
