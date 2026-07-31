@@ -24,11 +24,45 @@ Client Request (ticker list + question)
    JSON Response (metrics + summary)
 ```
 
+### Agent State Flow
+
+Each LangGraph node reads specific fields from the shared state and writes new ones back; the state accumulates as it moves through the graph:
+
+```
+Initial state:
+  { tickers, question }
+        |
+        v
+  ┌─────────────┐
+  │ fetch_data  │  reads: tickers
+  └─────────────┘  writes: price_data
+        |
+        v
+  { tickers, question, price_data }
+        |
+        v
+  ┌───────────────────┐
+  │ calculate_metrics │  reads: price_data
+  └───────────────────┘  writes: metrics
+        |
+        v
+  { tickers, question, price_data, metrics }
+        |
+        v
+  ┌─────────────┐
+  │ summarize   │  reads: question, metrics
+  └─────────────┘  writes: summary
+        |
+        v
+  Final state:
+  { tickers, question, price_data, metrics, summary }
+```
+
 ## Tech Stack
 
 - **Backend:** Python, FastAPI, Pydantic
 - **AI Orchestration:** LangGraph
-- **LLM Provider:** OpenAI / Anthropic API
+- **LLM Provider:** Google Gemini API (free tier)
 - **Data:** yfinance (market data)
 - **Testing:** pytest
 - **Containerization:** Docker, docker-compose

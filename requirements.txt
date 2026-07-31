@@ -2,8 +2,8 @@ fastapi
 uvicorn[standard]
 pydantic
 langgraph
-langchain-anthropic
-anthropic
+langchain-google-genai
+google-generativeai
 yfinance
 python-dotenv
 pytest
