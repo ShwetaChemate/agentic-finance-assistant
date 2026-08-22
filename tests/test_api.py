@@ -1,7 +1,7 @@
 import pandas as pd
 from fastapi.testclient import TestClient
 
-import app.agent.nodes as nodes
+from app.agent import nodes
 from app.main import app
 
 FAKE_PRICES = {

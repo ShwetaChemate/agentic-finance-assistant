@@ -1,4 +1,4 @@
-import app.agent.nodes as nodes
+from app.agent import nodes
 from app.agent.nodes import calculate_metrics, summarize
 from app.agent.state import TickerMetrics
 
