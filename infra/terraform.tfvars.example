@@ -1,0 +1,17 @@
+# Copy this to terraform.tfvars and fill in real values before running
+# `terraform apply` for real. terraform.tfvars is gitignored (like .env),
+# so your real Gemini key never gets committed.
+#
+# container_image: leave this pointing at your ECR repo once it exists.
+#   1. terraform apply -target=aws_ecr_repository.app   (creates just the ECR repo)
+#   2. terraform output ecr_repository_url              (get its URL)
+#   3. docker build -t <that-url>:latest ..              (from the project root, not infra/)
+#   4. aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <that-url>
+#   5. docker push <that-url>:latest
+#   6. Set container_image below to "<that-url>:latest"
+#   7. terraform apply    (now creates everything else, referencing the real image)
+container_image = "<account-id>.dkr.ecr.us-east-1.amazonaws.com/agentic-finance-assistant:latest"
+
+# Your real Gemini API key (same one in ../. env) — gets stored in AWS Secrets
+# Manager, never in the task definition or the Docker image itself.
+google_api_key = "your-real-google-api-key-here"

@@ -9,4 +9,5 @@ htmlcov/
 .terraform/
 *.tfstate
 *.tfstate.backup
+*.tfvars
 .DS_Store

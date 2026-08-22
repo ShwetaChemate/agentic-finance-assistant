@@ -102,13 +102,23 @@ docker-compose up --build
 
 ## Infrastructure (Terraform)
 
-Terraform modules under `infra/` define (but are not applied by default) an ECS Fargate service or Lambda function, an API Gateway, and a Secrets Manager entry for API keys.
+Terraform under `infra/` defines (but is not applied by default) a full deployment: an ECR repository, an ECS Fargate service behind an Application Load Balancer, an HTTP API Gateway proxying to the ALB, and a Secrets Manager entry for the Gemini API key. `terraform plan` has been run and validated against a real AWS account — it correctly resolves the account's default VPC/subnets and shows a clean 18-resource create plan — but nothing has been applied.
 
 ```bash
 cd infra
 terraform init
-terraform plan
+terraform plan -var="container_image=placeholder" -var="google_api_key=placeholder"
 ```
+
+### To actually deploy this for real
+
+1. Copy `infra/terraform.tfvars.example` to `infra/terraform.tfvars` and fill in your real Gemini key (gitignored, never committed)
+2. `terraform apply -target=aws_ecr_repository.app` — creates just the ECR repository
+3. `terraform output ecr_repository_url` — get its URL
+4. Build and push the Docker image there (see comments in `terraform.tfvars.example` for the exact `docker build`/`docker push` commands)
+5. Set `container_image` in `terraform.tfvars` to the pushed image's URI
+6. `terraform apply` — creates everything else
+7. **`terraform destroy` when done** — this stack costs real money if left running (mainly the ALB, roughly $16-20/month)
 
 ## Development Time Breakdown
 
