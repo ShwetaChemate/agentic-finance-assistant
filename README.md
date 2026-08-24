@@ -120,35 +120,36 @@ terraform plan -var="container_image=placeholder" -var="google_api_key=placehold
 6. `terraform apply` — creates everything else
 7. **`terraform destroy` when done** — this stack costs real money if left running (mainly the ALB, roughly $16-20/month)
 
-## Development Time Breakdown
+## Roadmap
 
-Total build time: **~9.5 hours**, scoped intentionally to stay under a 10-hour budget by skipping live AWS deployment (Terraform written but not applied).
+This project is being built in versioned stages, each one deepening the LLM/agentic side rather than just adding features.
 
-| # | Task | Estimated Hours |
-|---|------|------------------|
-| 1 | Project setup (repo, venv, dependencies) | 0.5 |
-| 2 | LangGraph agent design (state + 3 nodes: fetch_data, calculate_metrics, summarize) | 2.25 |
-| 3 | FastAPI endpoint + Pydantic request/response models | 1.25 |
-| 4 | Unit + integration tests (pytest) | 1.0 |
-| 5 | Dockerfile + docker-compose setup | 1.0 |
-| 6 | Terraform skeleton (ECS/Lambda, API Gateway, Secrets Manager) | 1.25 |
-| 7 | CI pipeline (GitHub Actions: lint + test) | 0.75 |
-| 8 | README, architecture diagram, demo GIF | 1.0 |
-| **Total** | | **~9.5 hours** |
+### v1 — Fixed pipeline ✅ Done
 
-### Time Calculation Notes
+A deterministic, linear graph: `fetch_data → calculate_metrics → summarize`, always in that exact order. The LLM's only role is turning pre-computed metrics into plain-language prose at the very end. One-shot, stateless, free-text output.
 
-- Hours are based on focused, uninterrupted work sessions; add a 15-20% buffer if working in shorter evening sessions around a full-time job or thesis writing.
-- LangGraph orchestration (step 2) and Terraform (step 6) are the largest line items since they involve the most new-to-you tooling; budget extra time here if this is your first LangGraph or Terraform project.
-- Skipping live AWS deployment (writing Terraform without `terraform apply`) saves roughly 3-4 additional hours and avoids cloud costs while still demonstrating IaC competency.
-- If time-constrained, steps 6 and 7 (Terraform + CI) can be deferred to a v2 iteration without weakening the core demo of agentic orchestration.
+### v2 — Structured, well-prompted output 🚧 In Progress
 
-## Future Improvements
+Goal: master prompt engineering and output control before adding graph complexity.
 
-- Deploy Terraform to a live AWS environment (ECS Fargate or Lambda)
-- Add streaming responses (Server-Sent Events) for the LLM summary
-- Add monitoring/tracing for LLM latency and token cost per request
-- Expand agent with a "compare portfolios" node
+- **Structured output** — `summarize` returns a Pydantic-validated JSON shape (risk rating, key drivers, confidence) instead of free prose
+- **Real prompt engineering** — few-shot examples, explicit tone/format constraints, proper system vs. user message separation
+- **Question classification + conditional routing** — a new node classifies the question type (risk / performance / comparison) and routes to different prompt strategies via LangGraph's conditional edges — the graph's first real decision point, not just sequential execution
+
+### v3 — True agentic behavior 📋 Planned
+
+Goal: the core skill LangGraph is built around — the LLM deciding what to do, not just how to phrase it.
+
+- **Tool-calling agent** — replace the fixed pipeline with an LLM that decides which tools to invoke and when (e.g., skip volatility for a pure performance question, or call `fetch_data` twice for a comparison question) — a ReAct-style pattern
+- **Multi-turn memory** — LangGraph checkpointing so follow-up questions don't require restating context
+
+### Later / optional polish
+
+- Evaluation harness — score summary quality/consistency across prompt variants
+- RAG — pull in real news/filings context alongside price metrics
+- Streaming responses (Server-Sent Events) for the LLM summary
+- Monitoring/tracing for LLM latency and token cost per request
+- Deploy Terraform to a live AWS environment
 
 ## License
 
