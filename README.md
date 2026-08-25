@@ -12,17 +12,19 @@ Retail investors often need quick, contextual answers about their portfolio (e.g
 Client Request (ticker list + question)
         |
         v
-   FastAPI Endpoint (/analyze-portfolio)
+   FastAPI Endpoint (/v1/analyze-portfolio  or  /v2/analyze-portfolio)
         |
         v
    LangGraph Agent
-     ├── fetch_data        (pulls market data via yfinance)
-     ├── calculate_metrics (returns, volatility)
-     └── summarize         (LLM call -> plain-language explanation)
+     ├── fetch_data        (pulls market data via yfinance)              \  shared by
+     ├── calculate_metrics (returns, volatility)                         /  v1 and v2
+     └── summarize_v1 (free-text via LLM)  OR  summarize_v2 (structured) <- version-specific
         |
         v
    JSON Response (metrics + summary)
 ```
+
+v1 and v2 are separate, independently callable endpoints/graphs — not one replacing the other. See [Roadmap](#roadmap) below.
 
 ### Agent State Flow
 
@@ -82,8 +84,18 @@ uvicorn app.main:app --reload
 
 ## Example Request
 
+**v1** (free-text summary):
+
 ```bash
-curl -X POST http://localhost:8000/analyze-portfolio \
+curl -X POST http://localhost:8000/v1/analyze-portfolio \
+  -H "Content-Type: application/json" \
+  -d '{"tickers": ["VWCE.DE", "AAPL"], "question": "How risky is this portfolio?"}'
+```
+
+**v2** (structured summary — risk rating, key drivers, confidence, explanation):
+
+```bash
+curl -X POST http://localhost:8000/v2/analyze-portfolio \
   -H "Content-Type: application/json" \
   -d '{"tickers": ["VWCE.DE", "AAPL"], "question": "How risky is this portfolio?"}'
 ```
@@ -124,17 +136,19 @@ terraform plan -var="container_image=placeholder" -var="google_api_key=placehold
 
 This project is being built in versioned stages, each one deepening the LLM/agentic side rather than just adding features.
 
+v1 and v2 are separate, independently callable endpoints (`/v1/analyze-portfolio`, `/v2/analyze-portfolio`) backed by separate graphs — v2 does not replace or modify v1's code.
+
 ### v1 — Fixed pipeline ✅ Done
 
-A deterministic, linear graph: `fetch_data → calculate_metrics → summarize`, always in that exact order. The LLM's only role is turning pre-computed metrics into plain-language prose at the very end. One-shot, stateless, free-text output.
+A deterministic, linear graph: `fetch_data → calculate_metrics → summarize_v1`, always in that exact order. The LLM's only role is turning pre-computed metrics into plain-language prose at the very end. One-shot, stateless, free-text output.
 
 ### v2 — Structured, well-prompted output 🚧 In Progress
 
 Goal: master prompt engineering and output control before adding graph complexity.
 
-- **Structured output** — `summarize` returns a Pydantic-validated JSON shape (risk rating, key drivers, confidence) instead of free prose
-- **Real prompt engineering** — few-shot examples, explicit tone/format constraints, proper system vs. user message separation
-- **Question classification + conditional routing** — a new node classifies the question type (risk / performance / comparison) and routes to different prompt strategies via LangGraph's conditional edges — the graph's first real decision point, not just sequential execution
+- ✅ **Structured output** — `summarize_v2` returns a Pydantic-validated `PortfolioSummary` (risk rating, key drivers, confidence, explanation) instead of free prose, via `with_structured_output`
+- ⬜ **Real prompt engineering** — few-shot examples, explicit tone/format constraints, proper system vs. user message separation
+- ⬜ **Question classification + conditional routing** — a new node classifies the question type (risk / performance / comparison) and routes to different prompt strategies via LangGraph's conditional edges — the graph's first real decision point, not just sequential execution
 
 ### v3 — True agentic behavior 📋 Planned
 
